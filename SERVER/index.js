@@ -10,7 +10,8 @@ require('dotenv').config()
 const connectdb = require("./config/db");
 const authuser = require("./routes/authroutes");
 const taskRoutes=require("./routes/taskroutes")
-const userroutes=require("./routes/userroutes")
+const timeroutes=require("./routes/timeroutes")
+
 connectdb()
 var cors = require("cors");
 app.use(
@@ -25,7 +26,8 @@ res.send("WELCOME TO REMOTE WORK TRACKER ")
 
 app.use("/api", authuser);
 app.use("/api/tasks", taskRoutes)
-app.use("/api/users",userroutes)
+app.use("/api/time",timeroutes)
+
 
 app.listen(process.env.PORT,()=>{
     console.log(`Listening to port number http://localhost:${process.env.PORT}`);

@@ -1,10 +1,23 @@
-const TimeEntry = require("../models/timeEntryModel");
+const TimeEntry = require("../models/timemodel");
 const Task = require("../models/taskmodel");
+const { createNotification } = require("./notificationController");
 
-// ✅ START TIMER
+// ====================== START TIMER ======================
 exports.startTimer = async (req, res) => {
   try {
     const { taskId, notes } = req.body;
+
+    // Check if task exists (if provided)
+    if (taskId) {
+      const task = await Task.findById(taskId);
+      if (!task) return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Prevent multiple active timers for same user
+    const activeEntry = await TimeEntry.findOne({ user: req.user.id, status: "active" });
+    if (activeEntry) {
+      return res.status(400).json({ message: "You already have an active timer" });
+    }
 
     const newEntry = new TimeEntry({
       user: req.user.id,
@@ -17,6 +30,19 @@ exports.startTimer = async (req, res) => {
 
     await newEntry.save();
 
+    // Optional: notify task creator if user starts timer
+    if (taskId) {
+      const task = await Task.findById(taskId);
+      if (task?.createdBy) {
+        await createNotification({
+          title: "Timer Started",
+          message: `${req.user.name} started working on task: ${task.title}`,
+          type: "task",
+          userId: task.createdBy,
+        });
+      }
+    }
+
     res.status(201).json({
       message: "Timer started successfully",
       timeEntry: newEntry,
@@ -27,7 +53,7 @@ exports.startTimer = async (req, res) => {
   }
 };
 
-// ✅ STOP TIMER
+// ====================== STOP TIMER ======================
 exports.stopTimer = async (req, res) => {
   try {
     const { entryId } = req.params;
@@ -43,6 +69,19 @@ exports.stopTimer = async (req, res) => {
     entry.status = "stopped";
     await entry.save();
 
+    // Optional: notify task creator
+    if (entry.task) {
+      const task = await Task.findById(entry.task);
+      if (task?.createdBy) {
+        await createNotification({
+          title: "Timer Stopped",
+          message: `${req.user.name} stopped working on task: ${task.title}`,
+          type: "task",
+          userId: task.createdBy,
+        });
+      }
+    }
+
     res.status(200).json({
       message: "Timer stopped successfully",
       timeEntry: entry,
@@ -53,7 +92,7 @@ exports.stopTimer = async (req, res) => {
   }
 };
 
-// ✅ AUTO PING — keeps user active
+// ====================== PING TIMER (Keep Active) ======================
 exports.pingTimer = async (req, res) => {
   try {
     const { entryId } = req.params;
@@ -79,11 +118,11 @@ exports.pingTimer = async (req, res) => {
   }
 };
 
-// ✅ AUTO CHECK FOR IDLE USERS (can be used with CRON every 10 mins)
+// ====================== AUTO MARK IDLE ENTRIES ======================
 exports.markIdleEntries = async () => {
   try {
     const now = new Date();
-    const idleThreshold = 10 * 60 * 1000; // 10 minutes
+    const idleThreshold = 10 * 60 * 1000; // 10 mins
 
     const activeEntries = await TimeEntry.find({ status: "active" });
     for (const entry of activeEntries) {
@@ -98,7 +137,7 @@ exports.markIdleEntries = async () => {
   }
 };
 
-// ✅ GET USER’S OWN ENTRIES
+// ====================== GET LOGGED-IN USER ENTRIES ======================
 exports.getMyEntries = async (req, res) => {
   try {
     const entries = await TimeEntry.find({ user: req.user.id })
@@ -107,24 +146,26 @@ exports.getMyEntries = async (req, res) => {
 
     res.status(200).json({ entries });
   } catch (err) {
+    console.error("Error fetching user entries:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// ✅ ADMIN: GET ALL ENTRIES
+// ====================== GET ALL ENTRIES (Admin / Manager) ======================
 exports.getAllEntries = async (req, res) => {
   try {
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
+    if (!["admin", "manager"].includes(req.user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const entries = await TimeEntry.find()
       .populate("user", "name email position")
-      .populate("task", "title")
+      .populate("task", "title status")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ entries });
   } catch (err) {
+    console.error("Error fetching all entries:", err);
     res.status(500).json({ message: err.message });
   }
 };

@@ -12,19 +12,21 @@ exports.createUser = async (req, res) => {
     // Check for existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists with this email" });
+      return res
+        .status(400)
+        .json({ message: "User already exists with this email" });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Handle Cloudinary upload (multer-cloudinary)
+    // Handle Cloudinary upload
     let profilePhoto = "";
     if (req.file && req.file.path) {
-      profilePhoto = req.file.path; // Cloudinary auto-returns image URL
+      profilePhoto = req.file.path;
     }
 
-    // Create new user
+    // Create user
     const newUser = new User({
       name,
       email,
@@ -99,11 +101,36 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// ====================== ADMIN DASHBOARD (Protected Route Example) ======================
-exports.adminDashboard = (req, res) => {
-  res.status(200).json({
-    message: `Welcome to the admin dashboard, ${req.user?.name || "Admin"}`,
-  });
+// ====================== GET LOGGED-IN USER ======================
+exports.getLoggedUser = async (req, res) => {
+  try {
+    // req.user.id comes from authentication middleware
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error("Error in getLoggedUser:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ====================== ADMIN DASHBOARD  ======================
+
+exports.adminDashboard = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email role");
+
+    res.status(200).json({
+      message: `Welcome to the admin dashboard`,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // ====================== LOGOUT ======================
