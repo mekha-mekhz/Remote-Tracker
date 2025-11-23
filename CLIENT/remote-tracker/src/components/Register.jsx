@@ -121,17 +121,34 @@ function Register() {
           style={inputStyle}
         />
 
-        <label>Profile Photo</label>
-        <input
-          type="file"
-          name="profilePhoto"
-          accept="image/*"
-          onChange={handleChange}
-          style={{
-            ...inputStyle,
-            padding: "8px",
-          }}
-        />
+    <label className="text-sm font-medium">Profile Photo</label>
+
+<div className="w-full">
+  {/* Hidden File Input */}
+  <input
+    type="file"
+    id="profilePhoto"
+    name="profilePhoto"
+    accept="image/*"
+    onChange={handleChange}
+    className="hidden"
+  />
+
+  {/* Custom Button */}
+  <label
+    htmlFor="profilePhoto"
+    className="block w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200"
+  >
+    Upload Profile Photo
+  </label>
+
+  {/* Show selected file name */}
+  {formData.profilePhoto && (
+    <p className="text-xs text-green-600 mt-1">
+      Selected: {formData.profilePhoto.name}
+    </p>
+  )}
+</div>
 
         <label>User Type</label>
         <select
