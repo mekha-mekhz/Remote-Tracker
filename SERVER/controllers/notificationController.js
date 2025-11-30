@@ -1,10 +1,11 @@
 import Notification from "../models/notificationmodel.js";
 
-// GET notifications for logged user
+/* ================================
+   GET NOTIFICATIONS FOR LOGGED USER
+================================ */
 export const getNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { id: userId, role: userRole } = req.user;
 
     const notifications = await Notification.find({
       $or: [{ userId }, { role: userRole }, { role: "all" }],
@@ -16,13 +17,13 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// MARK ONE AS READ
+/* ================================
+      MARK SINGLE AS READ
+================================ */
 export const markNotificationRead = async (req, res) => {
-  const { id } = req.params;
-
   try {
     const updated = await Notification.findByIdAndUpdate(
-      id,
+      req.params.id,
       { read: true },
       { new: true }
     );
@@ -40,11 +41,12 @@ export const markNotificationRead = async (req, res) => {
   }
 };
 
-// MARK ALL READ
+/* ================================
+        MARK ALL AS READ
+================================ */
 export const markAllRead = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { id: userId, role: userRole } = req.user;
 
     await Notification.updateMany(
       {
@@ -59,12 +61,12 @@ export const markAllRead = async (req, res) => {
   }
 };
 
-// DELETE NOTIFICATION
+/* ================================
+        DELETE NOTIFICATION
+================================ */
 export const deleteNotification = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const deleted = await Notification.findByIdAndDelete(id);
+    const deleted = await Notification.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
       return res.status(404).json({ error: "Notification not found" });
@@ -76,7 +78,9 @@ export const deleteNotification = async (req, res) => {
   }
 };
 
-// ADMIN: GET ALL NOTIFICATIONS
+/* ================================
+      ADMIN – GET ALL NOTICES
+================================ */
 export const adminGetAllNotifications = async (req, res) => {
   try {
     const data = await Notification.find().sort({ createdAt: -1 });
@@ -86,7 +90,9 @@ export const adminGetAllNotifications = async (req, res) => {
   }
 };
 
-// Helper function: CREATE A NOTIFICATION
+/* ================================
+         HELPER: CREATE
+================================ */
 export const createNotification = async ({
   title,
   message,
@@ -95,15 +101,13 @@ export const createNotification = async ({
   role = "user",
 }) => {
   try {
-    const notify = new Notification({
+    await Notification.create({
       title,
       message,
       type,
       userId,
       role,
     });
-
-    await notify.save();
   } catch (err) {
     console.log("Notification creation failed:", err.message);
   }

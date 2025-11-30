@@ -1,34 +1,63 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true},
+  name: { type: String, required: true },
 
-  email: {  type: String, required: true, unique: true,  lowercase: true },
-
-  password: {type: String,  required: true  },
-
-  role: {type: String,enum: ['user','manager','admin'], default: 'user' },
-
-  // Cloudinary Image URL
-  profilePhoto: { type: String,
-     default: ""
+  email: {  
+    type: String, 
+    required: true, 
+    unique: true,  
+    lowercase: true 
   },
 
-  // Employee position
-  position: { type: String,default: "Remote Employee"
+  password: {
+    type: String,  
+    required: true  
   },
 
-  // Account Status
-  isActive: { type: Boolean, default: true
+  role: {
+    type: String,
+    enum: ['user', 'manager', 'admin'],
+    default: 'user'
   },
 
- 
-timeEntries: [
-    {   type: mongoose.Schema.Types.ObjectId,ref: "TimeEntry"
+  // ⭐ PREMIUM STATUS
+  premium: {
+    type: Boolean,
+    default: false
+  },
+
+  // ⭐ PREMIUM EXPIRY (OPTIONAL BUT HIGHLY USEFUL)
+  premiumExpiresAt: {
+    type: Date,
+    default: null
+  },
+
+  profilePhoto: { 
+    type: String,
+    default: ""
+  },
+
+  position: { 
+    type: String,
+    default: "Remote Employee"
+  },
+
+  isActive: { 
+    type: Boolean, 
+    default: true
+  },
+
+  timeEntries: [
+    {   
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TimeEntry"
     }
   ],
 
-  createdAt: { type: Date, default: Date.now 
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
   }
 });
 

@@ -5,7 +5,6 @@ const User = require("../models/usermodel");
 
 // ====================== CREATE USER / REGISTER ======================
 exports.createUser = async (req, res) => {
-  console.log(req.body);
   try {
     const { name, email, password, role, position } = req.body;
 
@@ -34,6 +33,10 @@ exports.createUser = async (req, res) => {
       role: role || "user",
       profilePhoto,
       position,
+
+      // ⭐ DEFAULT PREMIUM FIELDS
+      premium: false,
+      premiumExpiresAt: null,
     });
 
     await newUser.save();
@@ -47,6 +50,8 @@ exports.createUser = async (req, res) => {
         role: newUser.role,
         position: newUser.position,
         profilePhoto: newUser.profilePhoto,
+        premium: newUser.premium,
+        premiumExpiresAt: newUser.premiumExpiresAt,
       },
     });
   } catch (err) {
@@ -78,6 +83,7 @@ exports.loginUser = async (req, res) => {
         id: user._id,
         email: user.email,
         role: user.role,
+        premium: user.premium,  
       },
       process.env.SECRET_KEY || process.env.secretkey,
       { expiresIn: "1d" }
@@ -92,6 +98,8 @@ exports.loginUser = async (req, res) => {
         role: user.role,
         position: user.position,
         profilePhoto: user.profilePhoto,
+        premium: user.premium,  
+        premiumExpiresAt: user.premiumExpiresAt,  
       },
       token,
     });
@@ -104,25 +112,29 @@ exports.loginUser = async (req, res) => {
 // ====================== GET LOGGED-IN USER ======================
 exports.getLoggedUser = async (req, res) => {
   try {
-    // req.user.id comes from authentication middleware
     const user = await User.findById(req.user.id).select("-password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ user });
+    res.status(200).json({
+      user: {
+        ...user._doc,
+        premium: user.premium,
+        premiumExpiresAt: user.premiumExpiresAt,
+      },
+    });
   } catch (err) {
     console.error("Error in getLoggedUser:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// ====================== ADMIN DASHBOARD  ======================
-
+// ====================== ADMIN DASHBOARD ======================
 exports.adminDashboard = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("name email role");
+    const user = await User.findById(req.user.id).select("name email role premium");
 
     res.status(200).json({
       message: `Welcome to the admin dashboard`,

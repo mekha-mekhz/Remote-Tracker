@@ -14,6 +14,10 @@ const timeroutes=require("./routes/timeroutes")
 const attendanceroutes=require("./routes/attendanceroutes")
 const leaveroutes=require("./routes/leaveroutes")
 const productivityroutes=require("./routes/dailreprtroutes")
+const adminRoutes = require("./routes/adminroutes");
+const notificationroutes=require("./routes/notificationRoutes")
+const paymentRoutes=require("./routes/paymentroutes")
+const planRoutes = require("./routes/planroutes");
 
 connectdb()
 var cors = require("cors");
@@ -33,7 +37,12 @@ app.use("/api/time",timeroutes)
 app.use("/api/attendance",attendanceroutes)
 app.use("/api/leave",leaveroutes)
 app.use("/api/productivity",productivityroutes)
+app.use("/admin", adminRoutes);
+app.use("/api/notifications",notificationroutes)
+app.use("/api/pay", paymentRoutes);
 
+
+app.use("/api/plans", planRoutes);
 
 app.listen(process.env.PORT,()=>{
     console.log(`Listening to port number http://localhost:${process.env.PORT}`);
