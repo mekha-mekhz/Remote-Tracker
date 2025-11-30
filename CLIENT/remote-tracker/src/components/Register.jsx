@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import api from "./api";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    
     password: "",
-    usertype: "user",
     position: "",
+    role: "user",
     profilePhoto: null,
   });
 
@@ -24,161 +26,131 @@ function Register() {
   const submit = async (e) => {
     e.preventDefault();
     try {
-      // Use FormData to handle image upload
       const data = new FormData();
-      Object.keys(formData).forEach((key) => {
-        data.append(key, formData[key]);
-      });
+      Object.keys(formData).forEach((key) => data.append(key, formData[key]));
 
       const res = await api.post("/register", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("✅ Registered Successfully");
-      console.log(res.data);
+      alert("✅ Registered Successfully!");
+      navigate("/login");
     } catch (err) {
-      console.error("❌ Registration failed:", err.response?.data || err.message);
+      alert("❌ Registration failed");
+      console.error(err.response?.data || err.message);
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "12px",
-    borderRadius: "6px",
-    border: "1px solid #b7cbe6",
-  };
-
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "90vh",
-        fontFamily: "Arial",
-        background: "#eaf4ff",
-      }}
-    >
+    <div className="flex items-center justify-center min-h-screen px-4 
+      bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+
       <form
         onSubmit={submit}
-        style={{
-          background: "#ffffff",
-          padding: "35px",
-          borderRadius: "12px",
-          width: "350px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-        }}
+        className="bg-white/10 backdrop-blur-md border border-white/20 
+        rounded-2xl p-8 w-full max-w-sm shadow-2xl"
       >
-        <h2
-          style={{
-            textAlign: "center",
-            marginBottom: "20px",
-            color: "#004aad",
-          }}
-        >
+        <h2 className="text-center text-3xl font-bold mb-6 bg-gradient-to-r 
+          from-lime-300 to-teal-300 text-transparent bg-clip-text">
           Register
         </h2>
 
-        <label>Full Name</label>
+        {/* Full Name */}
         <input
           type="text"
           name="name"
           placeholder="Full Name"
           onChange={handleChange}
           required
-          style={inputStyle}
+          className="w-full px-4 py-3 mb-4 bg-black/20 text-white rounded-lg 
+          focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
         />
 
-        <label>Email</label>
+        {/* Email */}
         <input
           type="email"
           name="email"
           placeholder="Email"
           onChange={handleChange}
           required
-          style={inputStyle}
+          className="w-full px-4 py-3 mb-4 bg-black/20 text-white rounded-lg 
+          focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
         />
 
-      
-
-        <label>Password</label>
+        {/* Password */}
         <input
           type="password"
           name="password"
           placeholder="Password"
           onChange={handleChange}
           required
-          style={inputStyle}
+          className="w-full px-4 py-3 mb-4 bg-black/20 text-white rounded-lg 
+          focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
         />
 
-        <label>Position</label>
+        {/* Position */}
         <input
           type="text"
           name="position"
-          placeholder="e.g. Remote Developer"
+          placeholder="Position (e.g., Remote Developer)"
           onChange={handleChange}
-          style={inputStyle}
+          className="w-full px-4 py-3 mb-4 bg-black/20 text-white rounded-lg 
+          focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
         />
 
-    <label className="text-sm font-medium">Profile Photo</label>
+        {/* Profile Photo */}
+        <div className="w-full mb-4">
+          <input
+            type="file"
+            id="profilePhoto"
+            name="profilePhoto"
+            accept="image/*"
+            onChange={handleChange}
+            className="hidden"
+          />
+          <label
+            htmlFor="profilePhoto"
+            className="block w-full bg-black/20 border border-white/20 rounded-lg px-3 py-3 text-sm cursor-pointer hover:bg-white/10"
+          >
+            Upload Profile Photo
+          </label>
+          {formData.profilePhoto && (
+            <p className="text-xs text-lime-300 mt-1">
+              Selected: {formData.profilePhoto.name}
+            </p>
+          )}
+        </div>
 
-<div className="w-full">
-  {/* Hidden File Input */}
-  <input
-    type="file"
-    id="profilePhoto"
-    name="profilePhoto"
-    accept="image/*"
-    onChange={handleChange}
-    className="hidden"
-  />
+        {/* User Type */}
+       <select
+  name="role"   // ✔ changed
+  onChange={handleChange}
+  className="w-full px-4 py-3 mb-6 bg-black/20 text-white rounded-lg 
+          focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
+>
+  <option value="user">User</option>
+  <option value="manager">Task Manager</option>
+  <option value="admin">Admin</option>
+</select>
 
-  {/* Custom Button */}
-  <label
-    htmlFor="profilePhoto"
-    className="block w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-gray-200"
-  >
-    Upload Profile Photo
-  </label>
 
-  {/* Show selected file name */}
-  {formData.profilePhoto && (
-    <p className="text-xs text-green-600 mt-1">
-      Selected: {formData.profilePhoto.name}
-    </p>
-  )}
-</div>
-
-        <label>User Type</label>
-        <select
-          name="usertype"
-          onChange={handleChange}
-          style={inputStyle}
-        >
-            <option value="user">User</option>
-          <option value="taskmanager">Task Manager</option>
-          <option value="admin">Admin</option>
-        </select>
-
+        {/* Register Button */}
         <button
           type="submit"
-          style={{
-            width: "100%",
-            padding: "10px",
-            background: "#004aad",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontWeight: "500",
-            cursor: "pointer",
-            transition: "0.3s",
-          }}
-          onMouseEnter={(e) => (e.target.style.background = "#00368a")}
-          onMouseLeave={(e) => (e.target.style.background = "#004aad")}
+          className="w-full py-3 rounded-lg bg-gradient-to-r 
+          from-lime-400 to-teal-400 text-black font-semibold shadow-lg 
+          hover:opacity-90 transition"
         >
           Register
         </button>
+
+        {/* Login Link */}
+        <p className="text-center mt-4 text-gray-300 text-sm">
+          Already have an account?{" "}
+          <a href="/login" className="text-teal-300 hover:underline">
+            Login
+          </a>
+        </p>
       </form>
     </div>
   );

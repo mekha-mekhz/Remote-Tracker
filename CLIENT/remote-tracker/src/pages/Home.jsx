@@ -1,108 +1,94 @@
 import React from "react";
 import { motion } from "framer-motion";
+import HeroImage from "../assets/hmepage.jpg";
 
 function HomePage() {
   return (
-    <div className="font-sans bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      {/* ===== Navbar ===== */}
-      <nav className="flex justify-between items-center px-8 py-4 shadow-md bg-white sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-blue-600">RemoteTrack</h1>
-        <div className="space-x-6">
-          <a href="/" className="text-gray-700 hover:text-blue-600 transition">Home</a>
-          <a href="/dashboard" className="text-gray-700 hover:text-blue-600 transition">Dashboard</a>
-          <a href="/tasks" className="text-gray-700 hover:text-blue-600">Tasks</a>
+    <>
+      {/* ===== HERO SECTION ===== */}
+      <section className="relative w-full h-[75vh] md:h-[85vh] flex items-center justify-center overflow-hidden">
+        
+        {/* Hero Image */}
+        <img
+          src={HeroImage}
+          alt="Hero"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
-          <a href="/login" className="text-gray-700 hover:text-blue-600 transition">Login</a>
-          <a
-            href="/register"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            Register
-          </a>
-        </div>
-      </nav>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40"></div>
 
-      {/* ===== Hero Section ===== */}
-      <motion.section
-        className="flex flex-col md:flex-row items-center justify-between px-10 md:px-20 py-16"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-      >
-        <div className="md:w-1/2">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4 leading-tight">
-            Track Your Team’s Remote Productivity Effortlessly 🚀
-          </h2>
-          <p className="text-gray-600 mb-6 text-lg">
-            Manage remote work, monitor tasks, and boost performance — all in one place.
+        {/* Hero Content */}
+        <motion.div
+          className="relative z-10 flex flex-col items-center text-center px-6 md:px-20"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+        >
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+            Boost Your Remote Productivity
+            <br /> Stay Motivated. Achieve More. 🚀
+          </h1>
+
+          <p className="text-white/90 mb-6 text-lg drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
+            Track tasks, monitor progress, and manage your remote team with
+            clarity and confidence — every day.
           </p>
-          <div className="space-x-4">
+
+          <div className="flex gap-4 mt-4">
             <a
               href="/register"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+              className="bg-white text-emerald-700 px-7 py-3 rounded-xl font-semibold hover:bg-lime-100 transition shadow-lg"
             >
               Get Started
             </a>
             <a
               href="/login"
-              className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-100 transition"
+              className="border border-white text-white px-7 py-3 rounded-xl font-semibold hover:bg-white/20 transition shadow-lg"
             >
               Login
             </a>
           </div>
-        </div>
+        </motion.div>
+      </section>
 
-        <motion.img
-          src="https://cdn-icons-png.flaticon.com/512/826/826070.png"
-          alt="Productivity Illustration"
-          className="w-72 md:w-96 mt-10 md:mt-0"
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1 }}
-        />
-      </motion.section>
-
-      {/* ===== Features Section ===== */}
-      <section className="px-10 md:px-20 py-16 bg-blue-50">
-        <h3 className="text-3xl font-bold text-center text-gray-800 mb-12">
-          Why Choose RemoteTrack?
+      {/* ===== FEATURES SECTION ===== */}
+      <section className="px-10 md:px-20 py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white">
+        <h3 className="text-3xl font-extrabold text-center mb-16 drop-shadow-lg">
+          Powerful Tools to Improve Remote Team Efficiency
         </h3>
-        <div className="grid md:grid-cols-3 gap-10">
+
+        <div className="grid md:grid-cols-3 gap-12">
           {[
             {
               title: "⏰ Time Tracking",
-              desc: "Monitor daily productivity hours and ensure efficient workflows.",
+              desc: "Monitor working hours, breaks, and daily productivity with ease.",
             },
             {
-              title: "📊 Performance Analytics",
-              desc: "Get detailed insights into task progress and employee efficiency.",
+              title: "📊 Smart Analytics",
+              desc: "Understand performance trends with AI-powered insights.",
             },
             {
-              title: "💬 Collaboration Tools",
-              desc: "Communicate seamlessly and manage remote teams with ease.",
+              title: "💬 Team Collaboration",
+              desc: "Stay connected with your team, no matter where they are.",
             },
-          ].map((f, i) => (
+          ].map((feature, i) => (
             <motion.div
               key={i}
-              className="bg-white rounded-xl p-6 shadow hover:shadow-lg transition"
+              className="bg-white/10 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition border border-white/20 backdrop-blur-md"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.2 }}
             >
-              <h4 className="text-xl font-semibold text-blue-600 mb-2">
-                {f.title}
+              <h4 className="text-xl font-semibold text-white mb-2 drop-shadow-md">
+                {feature.title}
               </h4>
-              <p className="text-gray-600">{f.desc}</p>
+              <p className="text-white/80 leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
       </section>
-
-      {/* ===== Footer ===== */}
-      <footer className="text-center py-6 bg-white shadow-inner text-gray-600">
-        © {new Date().getFullYear()} <span className="font-semibold text-blue-600">RemoteTrack</span> — Built for Smart Remote Teams.
-      </footer>
-    </div>
+    </>
   );
 }
 

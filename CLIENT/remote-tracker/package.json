@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/montserrat": "^5.2.8",
     "@hello-pangea/dnd": "^18.0.1",
+    "@stripe/stripe-js": "^8.5.3",
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
     "framer-motion": "^12.23.24",

@@ -1,249 +1,285 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import axios from "axios";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import React, { useState, useEffect } from "react";
+import api from "../components/api";
+import { useAuth } from "../context/Authcontext";
 
-function EmployeeDashboard() {
+function EmpDashboard() {
+  const { user } = useAuth();
   const token = localStorage.getItem("token");
 
-  const [user, setUser] = useState(null);
-  const [dailyStatus, setDailyStatus] = useState(null);
-  const [weeklyStats, setWeeklyStats] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  // --- STATES ---
+  const [leaves, setLeaves] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [leaveData, setLeaveData] = useState(null);
+  const [timer, setTimer] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
-  const [proofFile, setProofFile] = useState(null);
-  const [logText, setLogText] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [name, setName] = useState(user?.name || "");
+  const [password, setPassword] = useState("");
+  const [profileImg, setProfileImg] = useState(user?.profile || "/default.png");
 
-  const [loading, setLoading] = useState(true);
-
- useEffect(() => {
-  const fetchAll = async () => {
-    try {
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const profile = await axios.get("/api/user/me", { headers });
-      const daily = await axios.get("/api/user/daily-status", { headers });
-      const week = await axios.get("/api/logs/weekly", { headers });
-      const assigned = await axios.get("/api/tasks/user", { headers });
-      const notifs = await axios.get("/api/notifications/user", { headers });
-      const leaves = await axios.get("/api/user/leaves", { headers });
-
-      setUser(profile.data.user || {});
-      setDailyStatus(daily.data || {});
-
-      // ✔ Weekly stats (wrapped inside `week.data.stats`)
-      setWeeklyStats(week.data.stats || []);
-
-      // ✔ Tasks (wrapped inside `assigned.data.tasks`)
-      setTasks(assigned.data.tasks || []);
-
-      // ✔ Notifications (wrapped inside `notifs.data.notifications`)
-      setNotifications(notifs.data.notifications || []);
-
-      setLeaveData(leaves.data || {});
-    } catch (err) {
-      console.log("Fetch Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchAll();
-}, []);
-
-
-  // ⛔ While loading — prevent UI crash
-  if (loading) {
+  // --- LOADING CHECK ---
+  if (!user) {
     return (
-      <div className="text-center mt-10 text-xl font-semibold">
+      <div className="min-h-screen flex items-center justify-center bg-teal-900 text-lime-300 text-xl">
         Loading dashboard...
       </div>
     );
   }
 
+  // --- FETCH DASHBOARD DATA ---
+  useEffect(() => {
+    // Leaves
+    api
+      .get("/leave/my", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const data = Array.isArray(res.data.leaves) ? res.data.leaves : [];
+        setLeaves(data);
+      })
+      .catch(console.error);
+
+    // Attendance
+    api
+      .get("/attendance/my", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setAttendance(data);
+      })
+      .catch(console.error);
+
+    // Notifications
+    api
+      .get("/notifications", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setNotifications(data);
+      })
+      .catch(console.error);
+
+    // Timer
+    api
+      .get("/time/my", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        const active = data.find((t) => t.status === "active");
+        if (active) {
+          setTimer(active);
+          setIsRunning(true);
+          const start = new Date(active.start);
+          setElapsed(Math.floor((Date.now() - start) / 1000));
+        }
+      })
+      .catch(console.error);
+  }, [user]);
+
+  // --- TIMER TICK ---
+  useEffect(() => {
+    let interval;
+    if (isRunning) {
+      interval = setInterval(() => setElapsed((e) => e + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  // --- FORMAT TIME ---
+  const formatTime = (sec) => new Date(sec * 1000).toISOString().substr(11, 8);
+
+  // --- START TIMER ---
+  const startTimer = () => {
+    if (timer && isRunning) {
+      alert("You already have an active timer!");
+      return;
+    }
+
+    api
+      .post("/time/start", {}, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const startedTimer = res.data.timeEntry || res.data;
+        if (!startedTimer || !startedTimer._id) {
+          console.error("Timer start failed:", startedTimer);
+          alert("Could not start timer. Try again.");
+          return;
+        }
+        setTimer(startedTimer);
+        setIsRunning(true);
+        setElapsed(0);
+      })
+      .catch((err) => {
+        console.error("Failed to start timer:", err.response?.data || err);
+        alert(err.response?.data?.message || "Could not start timer. Try again.");
+      });
+  };
+
+  // --- STOP TIMER ---
+  const stopTimer = () => {
+    if (!timer || !timer._id) {
+      alert("No active timer to stop.");
+      setTimer(null);
+      setIsRunning(false);
+      setElapsed(0);
+      return;
+    }
+
+    api
+      .put(`/time/stop/${timer._id}`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        setTimer(null);
+        setIsRunning(false);
+        setElapsed(0);
+      })
+      .catch((err) => {
+        console.error("Failed to stop timer:", err.response?.data || err);
+        alert(err.response?.data?.message || "Could not stop timer. Try again.");
+        setTimer(null);
+        setIsRunning(false);
+        setElapsed(0);
+      });
+  };
+
+  // --- PROFILE UPLOAD ---
+  const handleProfileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const form = new FormData();
+    form.append("profile", file);
+
+    api
+      .put("/user/update-profile", form, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        setProfileImg(res.data.profile);
+        alert("Profile updated!");
+      })
+      .catch(console.error);
+  };
+
+  // --- SAVE SETTINGS ---
+  const saveSettings = () => {
+    api
+      .put("/user/update", { name, password }, { headers: { Authorization: `Bearer ${token}` } })
+      .then(() => alert("Changes saved!"))
+      .catch(console.error);
+  };
+
+  // --- RENDER ---
   return (
-    <>
-      {/* Profile Section */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
+    <div className="min-h-screen bg-teal-900 text-lime-300 p-6">
+      {/* TOP BAR */}
+      <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">
-          <img
-            src={user?.profilePhoto || "/default-avatar.png"}
-            alt="Profile"
-            className="w-20 h-20 rounded-full border"
-          />
+          <img src={profileImg} alt="Profile" className="w-20 h-20 rounded-full border-2 border-lime-400" />
           <div>
-            <h2 className="text-2xl font-bold">{user?.name}</h2>
-            <p>Email: {user?.email}</p>
-            <p>Role: {user?.role}</p>
-            <p>User ID: {user?._id}</p>
-            <p className="text-gray-600 text-sm">
-              Last Login: {user?.lastLogin || "Not available"}
+            <h1 className="text-3xl font-bold">Welcome, {user.name}</h1>
+            <p className={isRunning ? "text-lime-400" : "text-lime-200"}>
+              ● {isRunning ? "Online - Tracking Work" : "Offline"}
             </p>
           </div>
         </div>
-      </motion.div>
-
-      {/* Daily Status */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">📅 Daily Work Status</h3>
-
-        <p>Status: <b>{dailyStatus?.status || "N/A"}</b></p>
-        <p>Clock In: {dailyStatus?.clockIn || "-"}</p>
-        <p>Clock Out: {dailyStatus?.clockOut || "-"}</p>
-        <p>Total Hours: {dailyStatus?.totalHours || 0}</p>
-        <p>Break Hours: {dailyStatus?.breakHours || 0}</p>
-      </motion.div>
-
-      {/* Weekly Productivity */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">📊 Weekly Productivity</h3>
-
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={weeklyStats || []}>
-            <XAxis dataKey="day" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="hours" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Tasks */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-4">📌 Assigned Tasks</h3>
-
-        {tasks?.length > 0 ? (
-          tasks.map((task) => (
-            <div key={task._id} className="p-4 bg-gray-100 rounded-md mb-2">
-              <p className="font-bold">{task.title}</p>
-              <p>{task.description}</p>
-              <p>Deadline: {task.deadline}</p>
-
-              <p
-                className={`font-semibold ${
-                  task.status === "completed"
-                    ? "text-green-600"
-                    : task.status === "in-progress"
-                    ? "text-blue-600"
-                    : "text-orange-600"
-                }`}
-              >
-                {task.status}
-              </p>
-            </div>
-          ))
-        ) : (
-          <p>No tasks assigned</p>
-        )}
-      </motion.div>
-
-      {/* Upload Proof */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">📤 Upload Work Proof</h3>
-
-        <input
-          type="file"
-          onChange={(e) => setProofFile(e.target.files?.[0])}
-          className="mb-3"
-        />
-
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-md"
-          onClick={() => {
-            if (!proofFile) return;
-
-            const form = new FormData();
-            form.append("proof", proofFile);
-
-            axios.post("/api/user/upload-proof", form, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setProofFile(null);
-          }}
+          onClick={() => setShowSettings(!showSettings)}
+          className="bg-teal-800 px-4 py-2 rounded-xl hover:bg-teal-700"
         >
-          Upload
+          Settings ⚙️
         </button>
-      </motion.div>
+      </div>
 
-      {/* Work Log */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">📝 Submit Work Log</h3>
-
-        <textarea
-          value={logText}
-          onChange={(e) => setLogText(e.target.value)}
-          className="w-full p-3 border rounded-md"
-          placeholder="Describe your work today..."
-        ></textarea>
-
-        <button
-          className="bg-green-600 text-white px-4 py-2 mt-2 rounded-md"
-          onClick={() => {
-            axios.post(
-              "/api/user/work-log",
-              { text: logText },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setLogText("");
-          }}
-        >
-          Submit Log
-        </button>
-      </motion.div>
-
-      {/* Notifications */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">🔔 Notifications</h3>
-
-        {notifications?.length > 0 ? (
-          notifications.map((n) => (
-            <div key={n._id} className="p-3 bg-gray-100 rounded-md mb-2">
-              <p>{n.message}</p>
-              <p className="text-sm text-gray-500">{n.date}</p>
-            </div>
-          ))
+      {/* TIME TRACKER */}
+      <div className="bg-teal-800 p-6 rounded-2xl shadow-lg mb-8">
+        <h2 className="text-xl font-bold mb-2">Time Tracker</h2>
+        <p className="text-4xl font-mono mb-4">{formatTime(elapsed)}</p>
+        {!isRunning ? (
+          <button onClick={startTimer} className="bg-lime-600 px-5 py-2 rounded-xl hover:bg-lime-500">
+            ▶ Start Work
+          </button>
         ) : (
-          <p>No notifications</p>
+          <button onClick={stopTimer} className="bg-red-600 px-5 py-2 rounded-xl hover:bg-red-500">
+            ⏹ Stop Work
+          </button>
         )}
-      </motion.div>
+      </div>
 
-      {/* Leave Management */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-3">🏖 Leave Management</h3>
+      {/* DASHBOARD GRID */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Leaves */}
+        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Leave</h2>
+          {Array.isArray(leaves) && leaves.length > 0 ? (
+            <ul className="list-disc list-inside">
+              {leaves.map((l) => (
+                <li key={l._id}>{l.leaveType} — {l.status}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No leave records.</p>
+          )}
+        </div>
 
-        <p>Total Leaves: {leaveData?.total || 0}</p>
-        <p>Used Leaves: {leaveData?.used || 0}</p>
-        <p>Remaining: {leaveData?.remaining || 0}</p>
+        {/* Attendance */}
+        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Attendance</h2>
+          {Array.isArray(attendance) && attendance.length > 0 ? (
+            <ul className="list-disc list-inside">
+              {attendance.map((a) => (
+                <li key={a._id}>
+                  Check-in: {new Date(a.checkIn).toLocaleTimeString()} | Check-out: {a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : "Not yet"}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No attendance yet.</p>
+          )}
+        </div>
 
-        <button className="bg-purple-600 text-white px-4 py-2 rounded-md mt-3">
-          Apply for Leave
-        </button>
-      </motion.div>
+        {/* Notifications */}
+        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Notifications</h2>
+          {Array.isArray(notifications) && notifications.length > 0 ? (
+            <ul className="list-disc list-inside">
+              {notifications.map((n) => <li key={n._id}>{n.message}</li>)}
+            </ul>
+          ) : (
+            <p>No notifications.</p>
+          )}
+        </div>
+      </div>
 
-      {/* Settings */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md mb-10">
-        <h3 className="text-xl font-semibold mb-3">⚙ Settings</h3>
+      {/* SETTINGS */}
+      {showSettings && (
+        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg mt-8">
+          <h2 className="text-xl font-bold mb-4">Settings</h2>
 
-        <button className="bg-gray-700 text-white px-4 py-2 rounded-md mr-2">
-          Update Profile
-        </button>
+          <label className="block mb-4">
+            Name:
+            <input
+              className="w-full p-2 mt-2 bg-teal-900 rounded text-lime-200"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
 
-        <button className="bg-red-600 text-white px-4 py-2 rounded-md">
-          Change Password
-        </button>
-      </motion.div>
-    </>
+          <label className="block mb-4">
+            New Password:
+            <input
+              type="password"
+              className="w-full p-2 mt-2 bg-teal-900 rounded text-lime-200"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+
+          <label className="block mb-4">
+            Profile Photo:
+            <input type="file" className="mt-2" onChange={handleProfileUpload} />
+          </label>
+
+          <button className="bg-lime-600 px-5 py-2 rounded-xl hover:bg-lime-500" onClick={saveSettings}>
+            Save Changes
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
-export default EmployeeDashboard;
+export default EmpDashboard;
