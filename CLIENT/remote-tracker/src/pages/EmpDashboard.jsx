@@ -1,283 +1,209 @@
-import React, { useState, useEffect } from "react";
-import api from "../components/api";
+// import { Link } from "react-router-dom";
+
+// function EmpDashboard() {
+//   return (
+//     <div className="p-6 min-h-screen bg-gray-100">
+      
+//       {/* Header */}
+//       <h1 className="text-3xl font-bold mb-6 text-gray-800">
+//         Employee Dashboard
+//       </h1>
+
+//       {/* Dashboard Tiles */}
+//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+//         {/* Profile */}
+//         <Link
+//           to="/profile"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Work Profile</h2>
+//           <p className="text-gray-500 mt-2">View and update your employee profile</p>
+//         </Link>
+
+//         {/* Time Tracker */}
+//         <Link
+//           to="/time"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Time Tracker</h2>
+//           <p className="text-gray-500 mt-2">Track work hours in real-time</p>
+//         </Link>
+
+//         {/* Daily Activity Log */}
+//         <Link
+//           to="/daily-log"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Daily Activity Log</h2>
+//           <p className="text-gray-500 mt-2">Log tasks and work activities</p>
+//         </Link>
+
+//         {/* Productivity Goals */}
+//         <Link
+//           to="/goals"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Productivity Goals</h2>
+//           <p className="text-gray-500 mt-2">Set and track your goals</p>
+//         </Link>
+
+//         {/* Productivity Dashboard */}
+//         <Link
+//           to="/productivity"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Productivity Dashboard</h2>
+//           <p className="text-gray-500 mt-2">Work time, task progress & usage data</p>
+//         </Link>
+
+//         {/* Tasks */}
+//         <Link
+//           to="/tasks"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
+//           <p className="text-gray-500 mt-2">View, complete tasks & add notes</p>
+//         </Link>
+
+//         {/* Communication */}
+//         <Link
+//           to="/chat"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Communicate</h2>
+//           <p className="text-gray-500 mt-2">Chat with manager about work</p>
+//         </Link>
+
+//         {/* Notifications */}
+//         <Link
+//           to="/notifications"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
+//           <p className="text-gray-500 mt-2">Deadlines & task alerts</p>
+//         </Link>
+
+//         {/* Weekly & Monthly Reports */}
+//         <Link
+//           to="/reports"
+//           className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+//         >
+//           <h2 className="text-xl font-semibold text-gray-900">Weekly & Monthly Reports</h2>
+//           <p className="text-gray-500 mt-2">View detailed productivity reports</p>
+//         </Link>
+
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default EmpDashboard;
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/Authcontext";
 
 function EmpDashboard() {
   const { user } = useAuth();
-  const token = localStorage.getItem("token");
+  const isPremium = user?.premium;
 
-  // --- STATES ---
-  const [leaves, setLeaves] = useState([]);
-  const [attendance, setAttendance] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [timer, setTimer] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-
-  const [showSettings, setShowSettings] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [password, setPassword] = useState("");
-  const [profileImg, setProfileImg] = useState(user?.profile || "/default.png");
-
-  // --- LOADING CHECK ---
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-teal-900 text-lime-300 text-xl">
-        Loading dashboard...
+  // A reusable locked tile component
+  const LockedTile = ({ title, desc }) => (
+    <div className="relative p-5 bg-white rounded-xl shadow border overflow-hidden">
+      <div className="blur-sm pointer-events-none">
+        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        <p className="text-gray-500 mt-2">{desc}</p>
       </div>
-    );
-  }
+      
+      {/* Overlay Lock */}
+      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+        <span className="bg-yellow-400 text-black px-3 py-1 rounded-full font-semibold shadow">
+          🔒 Premium Only
+        </span>
+      </div>
+    </div>
+  );
 
-  // --- FETCH DASHBOARD DATA ---
-  useEffect(() => {
-    // Leaves
-    api
-      .get("/leave/my", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const data = Array.isArray(res.data.leaves) ? res.data.leaves : [];
-        setLeaves(data);
-      })
-      .catch(console.error);
-
-    // Attendance
-    api
-      .get("/attendance/my", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
-        setAttendance(data);
-      })
-      .catch(console.error);
-
-    // Notifications
-    api
-      .get("/notifications", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
-        setNotifications(data);
-      })
-      .catch(console.error);
-
-    // Timer
-    api
-      .get("/time/my", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
-        const active = data.find((t) => t.status === "active");
-        if (active) {
-          setTimer(active);
-          setIsRunning(true);
-          const start = new Date(active.start);
-          setElapsed(Math.floor((Date.now() - start) / 1000));
-        }
-      })
-      .catch(console.error);
-  }, [user]);
-
-  // --- TIMER TICK ---
-  useEffect(() => {
-    let interval;
-    if (isRunning) {
-      interval = setInterval(() => setElapsed((e) => e + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isRunning]);
-
-  // --- FORMAT TIME ---
-  const formatTime = (sec) => new Date(sec * 1000).toISOString().substr(11, 8);
-
-  // --- START TIMER ---
-  const startTimer = () => {
-    if (timer && isRunning) {
-      alert("You already have an active timer!");
-      return;
-    }
-
-    api
-      .post("/time/start", {}, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const startedTimer = res.data.timeEntry || res.data;
-        if (!startedTimer || !startedTimer._id) {
-          console.error("Timer start failed:", startedTimer);
-          alert("Could not start timer. Try again.");
-          return;
-        }
-        setTimer(startedTimer);
-        setIsRunning(true);
-        setElapsed(0);
-      })
-      .catch((err) => {
-        console.error("Failed to start timer:", err.response?.data || err);
-        alert(err.response?.data?.message || "Could not start timer. Try again.");
-      });
-  };
-
-  // --- STOP TIMER ---
-  const stopTimer = () => {
-    if (!timer || !timer._id) {
-      alert("No active timer to stop.");
-      setTimer(null);
-      setIsRunning(false);
-      setElapsed(0);
-      return;
-    }
-
-    api
-      .put(`/time/stop/${timer._id}`, {}, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        setTimer(null);
-        setIsRunning(false);
-        setElapsed(0);
-      })
-      .catch((err) => {
-        console.error("Failed to stop timer:", err.response?.data || err);
-        alert(err.response?.data?.message || "Could not stop timer. Try again.");
-        setTimer(null);
-        setIsRunning(false);
-        setElapsed(0);
-      });
-  };
-
-  // --- PROFILE UPLOAD ---
-  const handleProfileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const form = new FormData();
-    form.append("profile", file);
-
-    api
-      .put("/user/update-profile", form, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        setProfileImg(res.data.profile);
-        alert("Profile updated!");
-      })
-      .catch(console.error);
-  };
-
-  // --- SAVE SETTINGS ---
-  const saveSettings = () => {
-    api
-      .put("/user/update", { name, password }, { headers: { Authorization: `Bearer ${token}` } })
-      .then(() => alert("Changes saved!"))
-      .catch(console.error);
-  };
-
-  // --- RENDER ---
   return (
-    <div className="min-h-screen bg-teal-900 text-lime-300 p-6">
-      {/* TOP BAR */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <img src={profileImg} alt="Profile" className="w-20 h-20 rounded-full border-2 border-lime-400" />
-          <div>
-            <h1 className="text-3xl font-bold">Welcome, {user.name}</h1>
-            <p className={isRunning ? "text-lime-400" : "text-lime-200"}>
-              ● {isRunning ? "Online - Tracking Work" : "Offline"}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="bg-teal-800 px-4 py-2 rounded-xl hover:bg-teal-700"
+    <div className="p-6 min-h-screen bg-gray-100">
+      
+      {/* Header */}
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">
+        Employee Dashboard
+      </h1>
+
+      {/* Dashboard Tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        {/* Work Profile – Active */}
+        <Link
+          to="/profile"
+          className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
         >
-          Settings ⚙️
-        </button>
-      </div>
+          <h2 className="text-xl font-semibold text-gray-900">Work Profile</h2>
+          <p className="text-gray-500 mt-2">View and update your employee profile</p>
+        </Link>
 
-      {/* TIME TRACKER */}
-      <div className="bg-teal-800 p-6 rounded-2xl shadow-lg mb-8">
-        <h2 className="text-xl font-bold mb-2">Time Tracker</h2>
-        <p className="text-4xl font-mono mb-4">{formatTime(elapsed)}</p>
-        {!isRunning ? (
-          <button onClick={startTimer} className="bg-lime-600 px-5 py-2 rounded-xl hover:bg-lime-500">
-            ▶ Start Work
-          </button>
+        {/* Time Tracker – Active */}
+        <Link
+          to="/time"
+          className="p-5 bg-white rounded-xl shadow hover:shadow-lg transition border"
+        >
+          <h2 className="text-xl font-semibold text-gray-900">Time Tracker</h2>
+          <p className="text-gray-500 mt-2">Track work hours in real-time</p>
+        </Link>
+
+        {/* All below – Locked unless premium */}
+        {!isPremium ? (
+          <>
+            <LockedTile title="Daily Activity Log" desc="Log tasks and work activities" />
+            <LockedTile title="Productivity Goals" desc="Set and track your goals" />
+            <LockedTile title="Productivity Dashboard" desc="Work time & usage analytics" />
+            <LockedTile title="My Tasks" desc="View and update tasks" />
+            <LockedTile title="Communicate" desc="Chat with manager" />
+            <LockedTile title="Notifications" desc="Deadlines & task alerts" />
+            <LockedTile title="Weekly & Monthly Reports" desc="View detailed performance" />
+          </>
         ) : (
-          <button onClick={stopTimer} className="bg-red-600 px-5 py-2 rounded-xl hover:bg-red-500">
-            ⏹ Stop Work
-          </button>
+          <>
+            {/* PREMIUM USERS GET FULL ACCESS */}
+            <Link to="/daily-log" className="tile">
+              <h2 className="text-xl font-semibold">Daily Activity Log</h2>
+              <p className="text-gray-500 mt-2">Log tasks and work activities</p>
+            </Link>
+
+            <Link to="/goals" className="tile">
+              <h2 className="text-xl font-semibold">Productivity Goals</h2>
+              <p className="text-gray-500 mt-2">Set and track your goals</p>
+            </Link>
+
+            <Link to="/productivity" className="tile">
+              <h2 className="text-xl font-semibold">Productivity Dashboard</h2>
+              <p className="text-gray-500 mt-2">Usage analytics</p>
+            </Link>
+
+            <Link to="/tasks" className="tile">
+              <h2 className="text-xl font-semibold">My Tasks</h2>
+              <p className="text-gray-500 mt-2">View & complete tasks</p>
+            </Link>
+
+            <Link to="/chat" className="tile">
+              <h2 className="text-xl font-semibold">Communicate</h2>
+              <p className="text-gray-500 mt-2">Chat with manager</p>
+            </Link>
+
+            <Link to="/notifications" className="tile">
+              <h2 className="text-xl font-semibold">Notifications</h2>
+              <p className="text-gray-500 mt-2">Alerts & reminders</p>
+            </Link>
+
+            <Link to="/reports" className="tile">
+              <h2 className="text-xl font-semibold">Weekly & Monthly Reports</h2>
+              <p className="text-gray-500 mt-2">Performance analytics</p>
+            </Link>
+          </>
         )}
+
       </div>
-
-      {/* DASHBOARD GRID */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Leaves */}
-        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Leave</h2>
-          {Array.isArray(leaves) && leaves.length > 0 ? (
-            <ul className="list-disc list-inside">
-              {leaves.map((l) => (
-                <li key={l._id}>{l.leaveType} — {l.status}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No leave records.</p>
-          )}
-        </div>
-
-        {/* Attendance */}
-        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Attendance</h2>
-          {Array.isArray(attendance) && attendance.length > 0 ? (
-            <ul className="list-disc list-inside">
-              {attendance.map((a) => (
-                <li key={a._id}>
-                  Check-in: {new Date(a.checkIn).toLocaleTimeString()} | Check-out: {a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : "Not yet"}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No attendance yet.</p>
-          )}
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Notifications</h2>
-          {Array.isArray(notifications) && notifications.length > 0 ? (
-            <ul className="list-disc list-inside">
-              {notifications.map((n) => <li key={n._id}>{n.message}</li>)}
-            </ul>
-          ) : (
-            <p>No notifications.</p>
-          )}
-        </div>
-      </div>
-
-      {/* SETTINGS */}
-      {showSettings && (
-        <div className="bg-teal-800 p-6 rounded-2xl shadow-lg mt-8">
-          <h2 className="text-xl font-bold mb-4">Settings</h2>
-
-          <label className="block mb-4">
-            Name:
-            <input
-              className="w-full p-2 mt-2 bg-teal-900 rounded text-lime-200"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-
-          <label className="block mb-4">
-            New Password:
-            <input
-              type="password"
-              className="w-full p-2 mt-2 bg-teal-900 rounded text-lime-200"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-
-          <label className="block mb-4">
-            Profile Photo:
-            <input type="file" className="mt-2" onChange={handleProfileUpload} />
-          </label>
-
-          <button className="bg-lime-600 px-5 py-2 rounded-xl hover:bg-lime-500" onClick={saveSettings}>
-            Save Changes
-          </button>
-        </div>
-      )}
     </div>
   );
 }

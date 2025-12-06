@@ -1,60 +1,76 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import api from "../components/api";
 
-export default function TimeTracker() {
-  const [isRunning, setIsRunning] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+function TimeTracker() {
+  const token = localStorage.getItem("token");
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // Timer logic
-  useEffect(() => {
-    let timer;
-    if (isRunning) {
-      timer = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
+  const fetchToday = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/attendance/my", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const todayStr = new Date().toISOString().split("T")[0];
+      const today = res.data.entries.find(e => e.date === todayStr);
+      setTodayAttendance(today || null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    return () => clearInterval(timer);
-  }, [isRunning]);
-
-  // Convert seconds → hh:mm:ss
-  const formatTime = (secs) => {
-    const h = String(Math.floor(secs / 3600)).padStart(2, "0");
-    const m = String(Math.floor((secs % 3600) / 60)).padStart(2, "0");
-    const s = String(secs % 60).padStart(2, "0");
-    return `${h}:${m}:${s}`;
   };
 
+  useEffect(() => {
+    fetchToday();
+  }, []);
+
+  const checkIn = async () => {
+    try {
+      await api.post("/attendance/checkin", {}, { headers: { Authorization: `Bearer ${token}` } });
+      fetchToday();
+    } catch (err) {
+      alert(err.response?.data?.message || "Check-in failed");
+    }
+  };
+
+  const checkOut = async () => {
+    try {
+      await api.post("/attendance/checkout", {}, { headers: { Authorization: `Bearer ${token}` } });
+      fetchToday();
+    } catch (err) {
+      alert(err.response?.data?.message || "Check-out failed");
+    }
+  };
+
+  const lastSession = todayAttendance?.sessions?.[todayAttendance.sessions.length - 1];
+  const canCheckIn = !lastSession || lastSession.checkOut;
+  const canCheckOut = lastSession && !lastSession.checkOut;
+
   return (
-    <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-md mx-auto mt-4">
-      <h2 className="text-xl font-bold mb-4 text-gray-700">Time Tracker</h2>
+    <div className="p-6 max-w-md mx-auto bg-white rounded shadow">
+      <h1 className="text-2xl font-bold mb-4">Time Tracker</h1>
+      {loading ? <p>Loading...</p> : (
+        <>
+          <div className="mb-4">
+            <p>Total Hours Today: {todayAttendance?.totalHours || 0}</p>
+            <p>Sessions:</p>
+            {todayAttendance?.sessions?.map((s, i) => (
+              <p key={i}>
+                {new Date(s.checkIn).toLocaleTimeString()} - {s.checkOut ? new Date(s.checkOut).toLocaleTimeString() : "In Progress"}
+              </p>
+            ))}
+          </div>
 
-      <div className="text-4xl font-mono text-center mb-6">
-        {formatTime(seconds)}
-      </div>
-
-      <div className="flex justify-center gap-4">
-        {!isRunning ? (
-          <button
-            onClick={() => setIsRunning(true)}
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
-            Start
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsRunning(false)}
-            className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-          >
-            Stop
-          </button>
-        )}
-
-        <button
-          onClick={() => setSeconds(0)}
-          className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-        >
-          Reset
-        </button>
-      </div>
+          <div className="flex gap-4">
+            {canCheckIn && <button onClick={checkIn} className="bg-blue-600 text-white px-4 py-2 rounded">Check In</button>}
+            {canCheckOut && <button onClick={checkOut} className="bg-red-600 text-white px-4 py-2 rounded">Check Out</button>}
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
+export default TimeTracker;

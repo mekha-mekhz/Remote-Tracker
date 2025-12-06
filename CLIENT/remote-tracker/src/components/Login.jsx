@@ -1,4 +1,3 @@
-// src/components/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "./api";
@@ -6,12 +5,14 @@ import { useAuth } from "../context/Authcontext";
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // ✅ AuthContext login
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,17 +20,39 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
+      console.log("📨 Sending login request:", formData);
+
       const res = await api.post("/login", formData);
 
-      // Save user & token in AuthContext
+      console.log("✅ Login Response:", res.data);
+
+      // Save token + user in context
       login(res.data.user, res.data.token);
 
-      alert("✅ Login Successful!");
-      navigate("/dashboard");
+      alert("Login Successful!");
+
+      const role = res.data.user.role;
+
+      // If user is premium → redirect to premium dashboard
+      if (res.data.user.premium) {
+        navigate("/premiumdashboard");
+        return;
+      }
+
+      // Role-based redirects
+      if (role === "admin") navigate("/admin");
+      else if (role === "manager") navigate("/taskmanager");
+      else navigate("/dashboard");
+
     } catch (err) {
-      alert("❌ Invalid credentials");
-      console.error(err.response?.data || err.message);
+      console.error("❌ Login Error:", err?.response?.data || err);
+
+      alert(err?.response?.data?.message || "Login failed. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,41 +70,36 @@ function Login() {
           Login
         </h2>
 
-        {/* Email */}
         <input
           type="email"
           name="email"
           placeholder="Email"
           onChange={handleChange}
-          value={formData.email}
           required
           className="w-full px-4 py-3 mb-4 bg-black/20 text-white rounded-lg 
-            focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
+          focus:ring-2 focus:ring-teal-300"
         />
 
-        {/* Password */}
         <input
           type="password"
           name="password"
           placeholder="Password"
           onChange={handleChange}
-          value={formData.password}
           required
           className="w-full px-4 py-3 mb-6 bg-black/20 text-white rounded-lg 
-            focus:ring-2 focus:ring-teal-300 outline-none border border-white/20"
+          focus:ring-2 focus:ring-teal-300"
         />
 
-        {/* Submit Button */}
         <button
           type="submit"
+          disabled={loading}
           className="w-full py-3 rounded-lg bg-gradient-to-r 
             from-lime-400 to-teal-400 text-black font-semibold shadow-lg 
-            hover:opacity-90 transition"
+            hover:opacity-90 transition disabled:opacity-50"
         >
-          Login
+          {loading ? "Processing..." : "Login"}
         </button>
 
-        {/* Register Link */}
         <p className="text-center mt-4 text-gray-300 text-sm">
           Don’t have an account?{" "}
           <a href="/register" className="text-teal-300 hover:underline">
