@@ -1,37 +1,24 @@
 const mongoose = require('mongoose');
 
+const sessionSchema = new mongoose.Schema({
+  checkIn: { type: Date, required: true },
+  checkOut: { type: Date, default: null }
+});
+
 const attendanceSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-
   date: {
-    type: Date,
-    required: true,
-    default: () => new Date().setHours(0, 0, 0, 0) // stores only the day
-  },
-
-  checkIn: {
-    type: Date,
+    type: String, // store as YYYY-MM-DD
     required: true
   },
-
-  checkOut: {
-    type: Date,
-    default: null
-  },
-
+  sessions: [sessionSchema],
   totalHours: {
     type: Number,
-    default: 0 // calculated as (checkOut - checkIn) in hours
-  },
-
-  status: {
-    type: String,
-    enum: ['present', 'absent', 'half-day'],
-    default: 'present'
+    default: 0
   }
 }, { timestamps: true });
 

@@ -7,7 +7,8 @@ const taskSchema = new mongoose.Schema({
   },
 
   description: { 
-    type: String 
+    type: String, 
+    default: "" 
   },
 
   // Who is responsible for completing this task
@@ -32,6 +33,17 @@ const taskSchema = new mongoose.Schema({
   estimatedMinutes: { 
     type: Number, 
     default: 0 
+  },
+
+  // Notes / progress updates
+  notes: {
+    type: String,
+    default: ""
+  },
+
+  // Track when task was completed
+  completedAt: {
+    type: Date,
   },
 
   // Who created the task (Manager / Admin)

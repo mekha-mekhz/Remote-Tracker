@@ -18,7 +18,8 @@ const adminRoutes = require("./routes/adminroutes");
 const notificationroutes=require("./routes/notificationRoutes")
 const paymentRoutes=require("./routes/paymentroutes")
 const planRoutes = require("./routes/planroutes");
-
+const premiumRoutes=require("./routes/premiumroutes")
+const disputeroutes=require("./routes/disputeroutes")
 connectdb()
 var cors = require("cors");
 app.use(
@@ -40,6 +41,8 @@ app.use("/api/productivity",productivityroutes)
 app.use("/admin", adminRoutes);
 app.use("/api/notifications",notificationroutes)
 app.use("/api/pay", paymentRoutes);
+app.use("/api/premium",premiumRoutes)
+app.use("/api/disputes",disputeroutes)
 
 
 app.use("/api/plans", planRoutes);

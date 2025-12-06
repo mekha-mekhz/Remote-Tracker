@@ -1,19 +1,29 @@
 const express = require("express");
 const router = express.Router();
 const taskController = require("../controllers/taskcontroller");
-const auth = require("../middleware/auth");
+const { authuser, authorizeRoles } = require("../middleware/auth");
 
-// MUST be placed first
-router.get("/user/mytasks", auth.authuser, taskController.getTasksForUser);
+// ====================== TASK ROUTES ======================
 
-// CRUD Routes
-router.post("/", auth.authuser, taskController.createTask);
-router.get("/", auth.authuser, taskController.getAllTasks);
-router.get("/:id", auth.authuser, taskController.getTaskById);
-router.put("/:id", auth.authuser, taskController.updateTask);
-router.delete("/:id", auth.authuser, taskController.deleteTask);
+// Create a new task (admin/manager only)
+router.post("/", authuser, authorizeRoles("admin", "manager"), taskController.createTask);
 
-// Status Update
-router.patch("/:id/status", auth.authuser, taskController.updateStatus);
+// Get all tasks (admin/manager)
+router.get("/", authuser, authorizeRoles("admin", "manager"), taskController.getAllTasks);
+
+// Get a single task by ID (any authenticated user)
+router.get("/:id", authuser, taskController.getTaskById);
+
+// Update a task (admin/manager)
+router.put("/:id", authuser, authorizeRoles("admin", "manager"), taskController.updateTask);
+
+// Delete a task (admin/manager)
+router.delete("/:id", authuser, authorizeRoles("admin", "manager"), taskController.deleteTask);
+
+// Update task status (assigned user)
+router.put("/status/:id", authuser, taskController.updateStatus);
+
+// Get tasks assigned to logged-in user
+router.get("/user/tasks", authuser, taskController.getTasksForUser);
 
 module.exports = router;
